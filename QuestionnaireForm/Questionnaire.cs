@@ -1,0 +1,42 @@
+﻿using System;
+using System.Collections.Generic;
+using System.Linq;
+using System.Text;
+using System.Threading.Tasks;
+
+namespace QuestionnaireForm
+{
+    internal class Questionnaire
+    {
+        private string Title { get; set; }
+        private string Theme { get; set; }
+        private List<Question> Questions { get; set; }
+
+        public Questionnaire(string title, string theme, List<Question> questions)
+        {
+            Title = title;
+            Theme = theme;
+            Questions = questions;
+        }
+
+        public int nombreDeQuestions()
+        {
+            return Questions.Count;
+        }
+
+        public Question getQuestion(int index)
+        {
+            return Questions[index];
+        }
+
+        public string getTheme()
+        {
+            return Theme;
+        }
+
+        public string getTitle()
+        {
+            return Title;
+        }
+    }
+}
