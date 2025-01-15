@@ -6,14 +6,16 @@ using System.Threading.Tasks;
 
 namespace QuestionnaireForm
 {
-    internal class Questionnaire
+    public class Questionnaire
     {
+        private string id { get; set; }
         private string Title { get; set; }
         private string Theme { get; set; }
         private List<Question> Questions { get; set; }
 
-        public Questionnaire(string title, string theme, List<Question> questions)
+        public Questionnaire(string id, string title, string theme, List<Question> questions)
         {
+            this.id = id;
             Title = title;
             Theme = theme;
             Questions = questions;
@@ -37,6 +39,11 @@ namespace QuestionnaireForm
         public string getTitle()
         {
             return Title;
+        }
+
+        public string getId()
+        {
+            return id;
         }
     }
 }

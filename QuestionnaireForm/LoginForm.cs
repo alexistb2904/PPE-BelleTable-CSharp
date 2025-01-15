@@ -1,6 +1,8 @@
 using MySql.Data.MySqlClient;
 using System.Security.Cryptography;
 using System.Text;
+using DotNetEnv;
+using System.Data;
 
 namespace QuestionnaireForm
 {
@@ -11,6 +13,7 @@ namespace QuestionnaireForm
         public LoginForm()
         {
             InitializeComponent();
+            
         }
 
         // From https://learn.microsoft.com/fr-fr/dotnet/api/system.security.cryptography.hashalgorithm.computehash?view=net-8.0
@@ -106,7 +109,6 @@ namespace QuestionnaireForm
         {
             string username = txtbox_username.Text;
             string password = txtbox_password.Text;
-
             if (string.IsNullOrWhiteSpace(username) || string.IsNullOrWhiteSpace(password))
             {
                 Console.WriteLine("Veuillez remplir tous les champs");
@@ -114,12 +116,13 @@ namespace QuestionnaireForm
             }
             else
             {
+                Env.Load();
                 DBConnection db = new DBConnection
                 {
-                    Server = "localhost",
-                    DatabaseName = "questionnaire",
-                    UserName = "root",
-                    Password = Crypto.Decrypt(Crypto.Encrypt(""))
+                    Server = Environment.GetEnvironmentVariable("DB_HOST") ?? throw new InvalidOperationException("DB_HOST n'existe pas"),
+                    DatabaseName = Environment.GetEnvironmentVariable("DB_NAME") ?? throw new InvalidOperationException("DB_NAME n'existe pas"),
+                    UserName = Environment.GetEnvironmentVariable("DB_USER") ?? throw new InvalidOperationException("DB_USER n'existe pas"),
+                    Password = Crypto.Decrypt(Environment.GetEnvironmentVariable("DB_PASSWORD") ?? throw new InvalidOperationException("DB_PASSWORD n'existe pas"))
                 };
 
                 if (db.IsConnect())
@@ -139,20 +142,30 @@ namespace QuestionnaireForm
 
                     if (reader.HasRows) // Vérifie s'il y a des résultats
                     {
+                        string role = "";
+                        int id = 0;
                         while (reader.Read())
                         {
+                            role = reader["role"].ToString();
+                            id = int.Parse(reader["id"].ToString());
                             Console.WriteLine($"ID: {reader["id"]}");
                             Console.WriteLine($"Username: {reader["username"]}");
                             Console.WriteLine($"Role: {reader["role"]}");
-                            if (reader["role"].ToString() == "0")
-                            {
-                                Console.WriteLine("Affichage Interface Réponse");
-                            }
-                            else if (reader["role"].ToString() == "1")
-                            {
-                                Console.WriteLine("Affichage Interface Administrateur");
-                            }
+                            
                         }
+                        reader.Close();
+                        if (role == "0")
+                        {
+                            Console.WriteLine("Affichage Interface Réponse");
+                        }
+                        else if (role == "1")
+                        {
+                            Console.WriteLine("Affichage Interface Administrateur");
+                            this.Hide();
+                            listeQuestionnaireForm listeQuestionnaireForm = new listeQuestionnaireForm(db, username, id);
+                            listeQuestionnaireForm.Show();
+                        }
+                        
                     }
                     else
                     {

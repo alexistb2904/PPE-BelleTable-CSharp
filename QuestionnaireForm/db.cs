@@ -27,7 +27,7 @@ namespace QuestionnaireForm
 
         public bool IsConnect()
         {
-            if (Connection == null)
+            if (Connection == null || Connection.State != System.Data.ConnectionState.Open)
             {
                 if (String.IsNullOrEmpty(DatabaseName))
                     return false;

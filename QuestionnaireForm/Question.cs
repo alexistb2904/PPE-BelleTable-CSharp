@@ -8,7 +8,7 @@ using static System.Windows.Forms.VisualStyles.VisualStyleElement.StartPanel;
 
 namespace QuestionnaireForm
 {
-    internal class Question
+    public class Question
     {
         private string Text { get; set; }
         private string Answer { get; set; }
