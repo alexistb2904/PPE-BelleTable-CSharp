@@ -24,8 +24,7 @@ namespace QuestionnaireForm
             liste_questionnaires = getQuestionnaireForUsername(username);
             appendListeQuestionnaire(liste_questionnaires);
 
-            // Attach context menu to DataGridView
-            //dataGrid_listeQuestionnaire.ContextMenuStrip = contextMenuStrip1;
+            dataGrid_listeQuestionnaire.ContextMenuStrip = contextMenuStrip1;
         }
 
         private List<Questionnaire> getQuestionnaireForUsername(string username)
@@ -97,8 +96,22 @@ namespace QuestionnaireForm
             {
                 Console.WriteLine($"Questionnaire: {item.getTitle()} - {item.getTheme()}");
             }
-            
-            dataGrid_listeQuestionnaire.DataSource = listeDeQuestionnaire;
+
+            dataGrid_listeQuestionnaire.DataSource = null;
+            // Créer une liste de questionnaires pour l'affichage dans le DataGridView
+            var dataSource = listeDeQuestionnaire
+            .OrderBy(q => q.getTitle())
+            .Select(q => new
+            {
+                Titre = q.getTitle(),
+                Theme = q.getTheme(),
+                Questions = q.nombreDeQuestions()
+            })
+            .ToList();
+
+            dataGrid_listeQuestionnaire.DataSource = dataSource;
+
+            Console.WriteLine(dataGrid_listeQuestionnaire.Rows.Count);
         }
 
         private void createAQuestionnaire_btn_Click(object sender, EventArgs e)

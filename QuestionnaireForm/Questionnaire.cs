@@ -13,6 +13,7 @@ namespace QuestionnaireForm
         private string Theme { get; set; }
         private List<Question> Questions { get; set; }
 
+
         public Questionnaire(string id, string title, string theme, List<Question> questions)
         {
             this.id = id;
@@ -23,7 +24,7 @@ namespace QuestionnaireForm
 
         public int nombreDeQuestions()
         {
-            return Questions.Count;
+            return Questions?.Count ?? 0;
         }
 
         public Question getQuestion(int index)

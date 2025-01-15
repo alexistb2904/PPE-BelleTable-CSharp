@@ -161,7 +161,6 @@ namespace QuestionnaireForm
                         else if (role == "1")
                         {
                             Console.WriteLine("Affichage Interface Administrateur");
-                            this.Hide();
                             listeQuestionnaireForm listeQuestionnaireForm = new listeQuestionnaireForm(db, username, id);
                             listeQuestionnaireForm.Show();
                         }

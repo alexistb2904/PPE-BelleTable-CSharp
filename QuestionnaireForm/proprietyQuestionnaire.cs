@@ -39,6 +39,9 @@ namespace QuestionnaireForm
                 themeQuestionnaire = "";
             }
 
+            name_txtBox.Text = nomQuestionnaire;
+            comboBox_theme.Text = themeQuestionnaire;
+
             getListOfTheme();
             foreach (QuestionnaireTheme theme in ListeThemes)
             {
