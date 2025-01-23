@@ -22,11 +22,11 @@ namespace QuestionnaireForm
         private string nomQuestionnaire;
         private string themeQuestionnaire;
         private int created_by;
-        public proprietyQuestionnaire(DBConnection db, List<Questionnaire> listeDeQuestionnaire, int creator, int index = -1)
+        public proprietyQuestionnaire(DBConnection db, List<Questionnaire> listeDeQuestionnaire, int creator, int indexTemp = -1)
         {
             InitializeComponent();
             this.listeDeQuestionnaire = listeDeQuestionnaire;
-            this.index = index;
+            index = indexTemp;
             this.db = db;
             created_by = creator;
             if (index != -1)
@@ -200,22 +200,25 @@ namespace QuestionnaireForm
                             "SELECT id_question, question, type, choix, reponses, id_creator FROM questions WHERE id_questionnaire = @id_questionnaire",
                             db.Connection
                         );
-                        connectionRequest.Parameters.AddWithValue("@id_questionnaire", listeDeQuestionnaire[index].getId());
+                        connectionRequest.Parameters.AddWithValue("@id_questionnaire", questionnaire.getId());
+                        Console.WriteLine(questionnaire.getQuestions().Count);
                         using (MySqlDataReader reader = connectionRequest.ExecuteReader())
                         {
                             while (reader.Read())
                             {
                                 string[] answers = reader["reponses"].ToString().Split(',');
                                 string[] choices = reader["choix"].ToString().Split(',');
+                                int id_quest = reader.GetInt32("id_question");
+                                Console.WriteLine("ID : " + id_quest);
                                 if (firstTime)
                                 {
-                                    Question question = new Question(reader.GetInt32("id_question"), listeDeQuestionnaire[index].getId(), created_by, reader["question"].ToString(), reader.GetInt32("type"), answers, choices);
-                                    question.GetType(db);
-                                    listeDeQuestionnaire[index].addQuestion(question);
+                                    Question question = new Question(id_quest, questionnaire.getId(), created_by, reader["question"].ToString(), reader.GetInt32("type"), answers, choices);
+
+                                    questionnaire.addQuestion(question);
                                 }
                                 else
                                 {
-                                    Question question = listeDeQuestionnaire[index].getQuestion(reader.GetInt32("id_question"));
+                                    Question question = questionnaire.getQuestion(id_quest);
                                     question.SetText(reader["question"].ToString());
                                     question.SetType(reader.GetInt32("type"), db);
                                     question.SetAnswers(answers);
@@ -225,31 +228,37 @@ namespace QuestionnaireForm
                             }
                             reader.Close();
                         }
+                        if (firstTime)
+                        {
+                            for (int i = 0; i < questionnaire.getQuestions().Count; i++)
+                            {
+                                questionnaire.getQuestionByQuestionnaireIndex(i).GetType(db);
+                            }
+                        }
                     }
                     catch (Exception ex)
                     {
                         Console.WriteLine($"Erreur lors de la récupération des questions: {ex.Message}");
                     }
-                }
+                    }
                 else
                 {
                     Console.WriteLine("Erreur de connexion à la base de données.");
                 }
-                appendListeQuestionnaire(listeDeQuestionnaire[index].getQuestions());
+                appendListeQuestionnaire(questionnaire.getQuestions());
             }
         }
 
         private void appendListeQuestionnaire(List<Question> listeDeQuestion)
         {
-            foreach (var item in listeDeQuestion)
+            foreach (Question item in listeDeQuestion)
             {
-                Console.WriteLine($"Question: {item.GetText()} - {item.GetStringType()}");
+                Console.WriteLine($"Question {item.GetId()}: {item.GetText()} - {item.GetStringType()}");
             }
 
             dataGrid_listeQuestions.DataSource = null;
             // Créer une liste de questionnaires pour l'affichage dans le DataGridView
             var dataSource = listeDeQuestion
-            .OrderBy(q => q.GetText())
             .Select(q => new
             {
                 Question = q.GetText(),
@@ -291,7 +300,7 @@ namespace QuestionnaireForm
             {
                 int selectedIndex = dataGrid_listeQuestions.SelectedRows[0].Index;
                 db.Close();
-                proprietyQuestionForm proprietyQuestionForm = new proprietyQuestionForm(db, created_by, listeDeQuestionnaire[index]);
+                proprietyQuestionForm proprietyQuestionForm = new proprietyQuestionForm(db, created_by, listeDeQuestionnaire[index], index);
                 // Ajout d'un écouteur pour rafraîchir la liste des questionnaires après la fermeture de la fenêtre de propriétés
                 proprietyQuestionForm.FormClosed += (s, args) => { RefreshQuestionsList(); };
                 proprietyQuestionForm.ShowDialog();

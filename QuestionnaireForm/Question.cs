@@ -60,6 +60,10 @@ namespace QuestionnaireForm
             return idCreator;
         }
 
+        public int GetId()
+        {
+            return id;
+        }
 
 
         public string GetType(DBConnection db)
@@ -68,9 +72,10 @@ namespace QuestionnaireForm
             {
                 Console.WriteLine("Connected to database");
                 MySqlCommand connectionRequest = new MySqlCommand(
-                    "SELECT nom FROM questions INNER JOIN types ON type = id_type",
+                    "SELECT nom FROM questions INNER JOIN types ON type = id_type WHERE id_type = @type",
                     db.Connection
                 );
+                connectionRequest.Parameters.AddWithValue("@type", Type);
 
                 using (var reader = connectionRequest.ExecuteReader())
                 {
@@ -91,6 +96,7 @@ namespace QuestionnaireForm
 
         public string GetStringType()
         {
+
             return StringType;
         }
 
@@ -136,10 +142,10 @@ namespace QuestionnaireForm
             {
                 if (db.IsConnect())
                 {
-                    using (var updateRequest = new MySqlCommand("UPDATE questions SET question = @question, type = @type, reponse = @reponse, choix = @choix WHERE id_question = @id_question", db.Connection)) {
+                    using (var updateRequest = new MySqlCommand("UPDATE questions SET question = @question, type = @type, reponses = @reponses, choix = @choix WHERE id_question = @id_question", db.Connection)) {
                         updateRequest.Parameters.AddWithValue("@question", Text);
                     updateRequest.Parameters.AddWithValue("@type", Type);
-                    updateRequest.Parameters.AddWithValue("@reponse", string.Join(",", Answers));
+                    updateRequest.Parameters.AddWithValue("@reponses", string.Join(",", Answers));
                     updateRequest.Parameters.AddWithValue("@choix", string.Join(",", Choices));
                     updateRequest.Parameters.AddWithValue("@id_question", id);
 
@@ -169,7 +175,17 @@ namespace QuestionnaireForm
             {
                 if (db.IsConnect())
                 {
-                    using (var insertRequest = new MySqlCommand("INSERT INTO questions (id_questionnaire, id_creator, question, type, reponses, choix) VALUES (@id_questionnaire, @id_creator, @question, @type, @reponses, @choix)", db.Connection))
+                    if (Answers == null || Answers.Length == 0)
+                    {
+                        throw new Exception("Les réponses ne peuvent pas être nulles ou vides.");
+                    }
+
+                    if (Choices == null || Choices.Length == 0)
+                    {
+                        throw new Exception("Les choix ne peuvent pas être nuls ou vides.");
+                    }
+
+                    using (var insertRequest = new MySqlCommand("INSERT INTO questions (question, type, choix, reponses, id_questionnaire, id_creator) VALUES (@question, @type, @choix, @reponses, @id_questionnaire, @id_creator)", db.Connection))
                     {
                         insertRequest.Parameters.AddWithValue("@id_questionnaire", id_questionnaire);
                         insertRequest.Parameters.AddWithValue("@id_creator", idCreator);
@@ -196,6 +212,7 @@ namespace QuestionnaireForm
                 return false;
             }
         }
+
 
 
         public bool deleteSelf(DBConnection db)

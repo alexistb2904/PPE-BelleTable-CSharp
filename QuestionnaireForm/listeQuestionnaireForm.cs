@@ -30,7 +30,7 @@ namespace QuestionnaireForm
         private List<Questionnaire> getQuestionnaireForUsername(string username)
         {
             Console.WriteLine("getQuestionnaireForUsername");
-            List<Questionnaire> liste_questionnaires = new List<Questionnaire>();
+            List<Questionnaire> liste_questionnairesT = new List<Questionnaire>();
 
             if (db.IsConnect())
             {
@@ -68,13 +68,15 @@ namespace QuestionnaireForm
                             Console.WriteLine($"nb_questions: {reader["nombre_de_questions"]}");
 
                             Questionnaire questionnaire = new Questionnaire(
-                                (int)reader["questionnaire_id"],
+                                Convert.ToInt32(reader["questionnaire_id"]),
                                 reader["questionnaire_nom"].ToString(),
                                 reader["theme_nom"].ToString(),
-                                new List<Question>()
+                                new List<Question>(),
+                                Convert.ToInt32(reader["nombre_de_questions"])
                             );
-                            liste_questionnaires.Add(questionnaire);
+                            liste_questionnairesT.Add(questionnaire);
                         }
+                        reader.Close();
                     }
                     db.Close();
                 }
@@ -87,7 +89,7 @@ namespace QuestionnaireForm
             {
                 Console.WriteLine("Erreur de connexion à la base de données.");
             }
-            return liste_questionnaires;
+            return liste_questionnairesT;
         }
 
         private void appendListeQuestionnaire(List<Questionnaire> listeDeQuestionnaire)
@@ -143,6 +145,7 @@ namespace QuestionnaireForm
             {
                 int selectedIndex = dataGrid_listeQuestionnaire.SelectedRows[0].Index;
                 db.Close();
+                
                 proprietyQuestionnaire proprietyForm = new proprietyQuestionnaire(db, liste_questionnaires, id_user, selectedIndex);
                 // Ajout d'un écouteur pour rafraîchir la liste des questionnaires après la fermeture de la fenêtre de propriétés
                 proprietyForm.FormClosed += (s, args) => { RefreshQuestionnaireList(); };

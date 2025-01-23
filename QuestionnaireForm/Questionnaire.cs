@@ -13,11 +13,14 @@ namespace QuestionnaireForm
         private string Theme { get; set; }
         private List<Question> Questions { get; set; }
 
+        private int nbQuestions { get; set; }
+
         public Questionnaire()
         {
             Title = "";
             Theme = "";
             Questions = new List<Question>();
+            nbQuestions = 0;
         }
 
         public Questionnaire(int id, string title, string theme, List<Question> questions)
@@ -26,16 +29,43 @@ namespace QuestionnaireForm
             Title = title;
             Theme = theme;
             Questions = questions;
+            nbQuestions = 0;
+        }
+
+        public Questionnaire(int id, string title, string theme, List<Question> questions, int nbQuestionsInit)
+        {
+            this.id = id;
+            Title = title;
+            Theme = theme;
+            Questions = questions;
+            nbQuestions = nbQuestionsInit;
         }
 
         public int nombreDeQuestions()
         {
-            return Questions?.Count ?? 0;
+            if (Questions?.Count > 0)
+            {
+                nbQuestions = Questions.Count;
+                return nbQuestions;
+            }
+            else { 
+            return nbQuestions; }
         }
-
-        public Question getQuestion(int index)
+        public Question getQuestionByQuestionnaireIndex(int index)
         {
             return Questions[index];
+        }
+
+        public Question getQuestion(int id)
+        {
+            foreach (Question question in Questions)
+            {
+                if (question.GetId() == id)
+                {
+                    return question;
+                }
+            }
+            return null;
         }
 
         public List<Question> getQuestions()

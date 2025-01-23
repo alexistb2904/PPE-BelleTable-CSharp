@@ -14,20 +14,20 @@ namespace QuestionnaireForm
 {
     public partial class proprietyQuestionForm : Form
     {
-        private Questionnaire questionnaire;
-        private int creator_id;
+        private Questionnaire questionnaire { get; set; }
+        private int creator_id { get; set; }
         private DBConnection db;
-        private int index;
-        private string TypeDeQuestion;
-        private Question questions;
+        private int index { get; set; }
+        private string TypeDeQuestion { get; set; }
+        private Question questions { get; set; }
         private List<QuestionType> ListeType = new List<QuestionType>();
-        public proprietyQuestionForm(DBConnection db, int creator_id, Questionnaire questionnaire, int index = -1)
+        public proprietyQuestionForm(DBConnection db, int creator_id, Questionnaire questionnaire, int indexGiven = -1)
         {
             InitializeComponent();
             this.db = db;
             this.creator_id = creator_id;
             this.questionnaire = questionnaire;
-            this.index = index;
+            index = indexGiven;
             GetTypes(db);
             foreach (QuestionType type in ListeType)
             {
@@ -36,7 +36,7 @@ namespace QuestionnaireForm
             comboBox_type.SelectedIndex = 0;
             if (index != -1)
             {
-                questions = questionnaire.getQuestion(index);
+                questions = questionnaire.getQuestionByQuestionnaireIndex(index);
                 txtbox_question_name.Text = questions.GetText();
                 TypeDeQuestion = questions.GetType(db);
                 comboBox_type.Text = TypeDeQuestion;
@@ -138,73 +138,85 @@ namespace QuestionnaireForm
 
         public void ValidTheQuestion(DBConnection db)
         {
-                try
+            try
+            {
+                questions.SetText(txtbox_question_name.Text);
+                questions.SetType(ListeType[comboBox_type.SelectedIndex].id, db);
+                questions.SetQuestionnaireId(questionnaire.getId());
+                questions.setIdCreator(creator_id);
+
+                if (comboBox_type.Text == "Vrai/Faux")
                 {
-
-                    questions.SetText(txtbox_question_name.Text);
-                    questions.SetType(ListeType[comboBox_type.SelectedIndex].id, db);
-                    questions.SetQuestionnaireId(questionnaire.getId());
-                    questions.setIdCreator(creator_id);
-                    if (comboBox_type.Text == "Vrai/Faux")
+                    string[] checkedBoxText = new string[1];
+                    if (radioBtn_Vrai.Checked)
                     {
-                        string[] checkedBoxText = new string[1];
-                        if (radioBtn_Vrai.Checked)
-                        {
-                            checkedBoxText[0] = "Vrai";
-                        }
-                        else
-                        {
-                            checkedBoxText[0] = "Faux";
-                        }
-
-                        string[] choices = new string[] { "Vrai", "Faux" };
-                        questions.SetChoices(choices);
-                        questions.SetAnswers(checkedBoxText);
+                        checkedBoxText[0] = "Vrai";
                     }
                     else
                     {
-                        string[] checkedBoxText = new string[3];
-                        string[] choices = new string[3];
+                        checkedBoxText[0] = "Faux";
+                    }
+
+                    string[] choices = new string[] { "Vrai", "Faux" };
+                    questions.SetChoices(choices);
+                    questions.SetAnswers(checkedBoxText);
+                }
+                else
+                {
+                    List<string> checkedBoxText = new List<string>();
+                    List<string> choices = new List<string>();
+
+                    if (!string.IsNullOrEmpty(rich_txtBox_1.Text))
+                    {
+                        choices.Add(rich_txtBox_1.Text);
                         if (checkBox_1.Checked)
                         {
-                            checkedBoxText[0] = rich_txtBox_1.Text;
+                            checkedBoxText.Add(rich_txtBox_1.Text);
                         }
+                    }
+
+                    if (!string.IsNullOrEmpty(rich_txtBox_2.Text))
+                    {
+                        choices.Add(rich_txtBox_2.Text);
                         if (checkBox_2.Checked)
                         {
-                            checkedBoxText[1] = rich_txtBox_2.Text;
+                            checkedBoxText.Add(rich_txtBox_2.Text);
                         }
+                    }
+
+                    if (!string.IsNullOrEmpty(rich_txtBox_3.Text))
+                    {
+                        choices.Add(rich_txtBox_3.Text);
                         if (checkBox_3.Checked)
                         {
-                            checkedBoxText[2] = rich_txtBox_3.Text;
+                            checkedBoxText.Add(rich_txtBox_3.Text);
                         }
-                        choices[0] = rich_txtBox_1.Text;
-                        choices[1] = rich_txtBox_2.Text;
-                        choices[2] = rich_txtBox_3.Text;
-                        questions.SetChoices(choices);
-                        questions.SetAnswers(checkedBoxText);
                     }
 
-                    if (index != -1)
-                    {
-                        questions.updateQuestion(db);
-                    }
-                    else
-                    {
-                        questionnaire.addQuestion(questions);
-                        questions.insertQuestion(db);
-                    }
-
-
-
-                    db.Close();
-                    this.Close();
+                    questions.SetChoices(choices.ToArray());
+                    questions.SetAnswers(checkedBoxText.ToArray());
                 }
-                catch (Exception ex)
+
+                if (index != -1)
                 {
-                    MessageBox.Show("Erreur lors de la création");
-                    Console.WriteLine($"Erreur lors de la création: {ex.Message}");
+                    questions.updateQuestion(db);
                 }
+                else
+                {
+                    questions.insertQuestion(db);
+                    questionnaire.addQuestion(questions);
+                }
+
+                db.Close();
+                this.Close();
+            }
+            catch (Exception ex)
+            {
+                MessageBox.Show("Erreur lors de la création");
+                Console.WriteLine($"Erreur lors de la création: {ex.Message}");
+            }
         }
+
 
         public void comboBox_type_SelectedIndexChanged(object sender, EventArgs e)
         {
