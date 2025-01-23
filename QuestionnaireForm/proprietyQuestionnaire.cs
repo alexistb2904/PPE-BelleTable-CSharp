@@ -15,6 +15,7 @@ namespace QuestionnaireForm
     public partial class proprietyQuestionnaire : Form
     {
         private List<Questionnaire> listeDeQuestionnaire;
+        private Questionnaire questionnaire;
         private int index;
         private DBConnection db = new DBConnection();
         private List<QuestionnaireTheme> ListeThemes = new List<QuestionnaireTheme>();
@@ -30,11 +31,13 @@ namespace QuestionnaireForm
             created_by = creator;
             if (index != -1)
             {
+                questionnaire = listeDeQuestionnaire[index];
                 nomQuestionnaire = listeDeQuestionnaire[index].getTitle();
                 themeQuestionnaire = listeDeQuestionnaire[index].getTheme();
             }
             else
             {
+                questionnaire = new Questionnaire();
                 nomQuestionnaire = "";
                 themeQuestionnaire = "";
             }
@@ -47,6 +50,10 @@ namespace QuestionnaireForm
             {
                 comboBox_theme.Items.Add(theme.name);
             }
+
+            RefreshQuestionsList(true);
+
+            dataGrid_listeQuestions.ContextMenuStrip = contextMenuStrip1;
         }
 
         private List<QuestionnaireTheme> getListOfTheme()
@@ -177,6 +184,144 @@ namespace QuestionnaireForm
             else
             {
                 MessageBox.Show("Veuillez remplir tous les champs.");
+            }
+        }
+
+        private void RefreshQuestionsList(bool firstTime = false)
+        {
+            if (index != -1)
+            {
+                db.Close();
+                if (db.IsConnect())
+                {
+                    try
+                    {
+                        MySqlCommand connectionRequest = new MySqlCommand(
+                            "SELECT id_question, question, type, choix, reponses, id_creator FROM questions WHERE id_questionnaire = @id_questionnaire",
+                            db.Connection
+                        );
+                        connectionRequest.Parameters.AddWithValue("@id_questionnaire", listeDeQuestionnaire[index].getId());
+                        using (MySqlDataReader reader = connectionRequest.ExecuteReader())
+                        {
+                            while (reader.Read())
+                            {
+                                string[] answers = reader["reponses"].ToString().Split(',');
+                                string[] choices = reader["choix"].ToString().Split(',');
+                                if (firstTime)
+                                {
+                                    Question question = new Question(reader.GetInt32("id_question"), listeDeQuestionnaire[index].getId(), created_by, reader["question"].ToString(), reader.GetInt32("type"), answers, choices);
+                                    question.GetType(db);
+                                    listeDeQuestionnaire[index].addQuestion(question);
+                                }
+                                else
+                                {
+                                    Question question = listeDeQuestionnaire[index].getQuestion(reader.GetInt32("id_question"));
+                                    question.SetText(reader["question"].ToString());
+                                    question.SetType(reader.GetInt32("type"), db);
+                                    question.SetAnswers(answers);
+                                    question.SetChoices(choices);
+                                    question.setIdCreator(created_by);
+                                }
+                            }
+                            reader.Close();
+                        }
+                    }
+                    catch (Exception ex)
+                    {
+                        Console.WriteLine($"Erreur lors de la récupération des questions: {ex.Message}");
+                    }
+                }
+                else
+                {
+                    Console.WriteLine("Erreur de connexion à la base de données.");
+                }
+                appendListeQuestionnaire(listeDeQuestionnaire[index].getQuestions());
+            }
+        }
+
+        private void appendListeQuestionnaire(List<Question> listeDeQuestion)
+        {
+            foreach (var item in listeDeQuestion)
+            {
+                Console.WriteLine($"Question: {item.GetText()} - {item.GetStringType()}");
+            }
+
+            dataGrid_listeQuestions.DataSource = null;
+            // Créer une liste de questionnaires pour l'affichage dans le DataGridView
+            var dataSource = listeDeQuestion
+            .OrderBy(q => q.GetText())
+            .Select(q => new
+            {
+                Question = q.GetText(),
+                Type = q.GetStringType(),
+            })
+            .ToList();
+
+            dataGrid_listeQuestions.DataSource = dataSource;
+
+            Console.WriteLine(dataGrid_listeQuestions.Rows.Count);
+        }
+
+        private void btn_createQuestion_Click(object sender, EventArgs e)
+        {
+            db.Close();
+            if (index != 1)
+            {
+                proprietyQuestionForm proprietyQuestionForm = new proprietyQuestionForm(db, created_by, listeDeQuestionnaire[index]);
+                // Ajout d'un écouteur pour rafraîchir la liste des questionnaires après la fermeture de la fenêtre de propriétés
+                proprietyQuestionForm.FormClosed += (s, args) => { RefreshQuestionsList(); };
+                proprietyQuestionForm.ShowDialog();
+            } else
+            {
+                MessageBox.Show("Veuillez enregistrer le questionnaire avant de créer une question.");
+            }
+        }
+
+        private void contextMenuStrip1_Opening(object sender, CancelEventArgs e)
+        {
+            if (dataGrid_listeQuestions.SelectedRows.Count == 0)
+            {
+                e.Cancel = true;
+            }
+        }
+
+        private void modifierToolStripMenuItem_Click(object sender, EventArgs e)
+        {
+            if (dataGrid_listeQuestions.SelectedRows.Count > 0)
+            {
+                int selectedIndex = dataGrid_listeQuestions.SelectedRows[0].Index;
+                db.Close();
+                proprietyQuestionForm proprietyQuestionForm = new proprietyQuestionForm(db, created_by, listeDeQuestionnaire[index]);
+                // Ajout d'un écouteur pour rafraîchir la liste des questionnaires après la fermeture de la fenêtre de propriétés
+                proprietyQuestionForm.FormClosed += (s, args) => { RefreshQuestionsList(); };
+                proprietyQuestionForm.ShowDialog();
+            }
+        }
+
+        private void supprimerToolStripMenuItem_Click(object sender, EventArgs e)
+        {
+            if (dataGrid_listeQuestions.SelectedRows.Count > 0)
+            {
+                int selectedIndex = dataGrid_listeQuestions.SelectedRows[0].Index;
+                Question selectedQuestion = listeDeQuestionnaire[index].getQuestion(selectedIndex);
+
+                DialogResult result = MessageBox.Show(
+                    "Êtes-vous sûr de vouloir supprimer ce questionnaire?",
+                    "Confirmation",
+                    MessageBoxButtons.YesNo,
+                    MessageBoxIcon.Warning
+                );
+
+                if (result == DialogResult.Yes)
+                {
+                    // Supprimer le questionnaire de la base de données
+                    selectedQuestion.deleteSelf(db);
+                    Questionnaire questionnaire = listeDeQuestionnaire[index];
+                    questionnaire.removeQuestion(selectedQuestion);
+
+                    // Réactualiser la liste
+                    RefreshQuestionsList();
+                }
             }
         }
     }

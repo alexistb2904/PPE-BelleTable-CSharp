@@ -68,7 +68,7 @@ namespace QuestionnaireForm
                             Console.WriteLine($"nb_questions: {reader["nombre_de_questions"]}");
 
                             Questionnaire questionnaire = new Questionnaire(
-                                reader["questionnaire_id"].ToString(),
+                                (int)reader["questionnaire_id"],
                                 reader["questionnaire_nom"].ToString(),
                                 reader["theme_nom"].ToString(),
                                 new List<Question>()

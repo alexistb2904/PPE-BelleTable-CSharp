@@ -163,6 +163,7 @@ namespace QuestionnaireForm
                             Console.WriteLine("Affichage Interface Administrateur");
                             listeQuestionnaireForm listeQuestionnaireForm = new listeQuestionnaireForm(db, username, id);
                             listeQuestionnaireForm.Show();
+                            this.Hide();
                         }
                         
                     }

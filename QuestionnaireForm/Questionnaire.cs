@@ -8,13 +8,19 @@ namespace QuestionnaireForm
 {
     public class Questionnaire
     {
-        private string id { get; set; }
+        private int id { get; set; }
         private string Title { get; set; }
         private string Theme { get; set; }
         private List<Question> Questions { get; set; }
 
+        public Questionnaire()
+        {
+            Title = "";
+            Theme = "";
+            Questions = new List<Question>();
+        }
 
-        public Questionnaire(string id, string title, string theme, List<Question> questions)
+        public Questionnaire(int id, string title, string theme, List<Question> questions)
         {
             this.id = id;
             Title = title;
@@ -32,6 +38,21 @@ namespace QuestionnaireForm
             return Questions[index];
         }
 
+        public List<Question> getQuestions()
+        {
+            return Questions;
+        }
+
+        public void addQuestion(Question question)
+        {
+            Questions.Add(question);
+        }
+
+        public void removeQuestion(Question question)
+        {
+            Questions.Remove(question);
+        }
+
         public string getTheme()
         {
             return Theme;
@@ -42,7 +63,7 @@ namespace QuestionnaireForm
             return Title;
         }
 
-        public string getId()
+        public int getId()
         {
             return id;
         }

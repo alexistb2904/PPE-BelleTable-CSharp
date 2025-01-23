@@ -27,16 +27,25 @@ namespace QuestionnaireForm
 
         public bool IsConnect()
         {
-            if (Connection == null || Connection.State != System.Data.ConnectionState.Open)
+            try
             {
-                if (String.IsNullOrEmpty(DatabaseName))
-                    return false;
-                string connstring = string.Format("Server={0}; database={1}; UID={2}; password={3}", Server, DatabaseName, UserName, Password);
-                Connection = new MySqlConnection(connstring);
-                Connection.Open();
-            }
+                if (Connection == null || Connection.State != System.Data.ConnectionState.Open)
+                {
 
-            return true;
+                    if (String.IsNullOrEmpty(DatabaseName))
+                        return false;
+                    string connstring = string.Format("Server={0}; database={1}; UID={2}; password={3}", Server, DatabaseName, UserName, Password);
+                    Connection = new MySqlConnection(connstring);
+                    Connection.Open();
+                }
+
+                return true;
+            }
+            catch (Exception e)
+            {
+                Console.WriteLine(e.Message);
+                return false;
+            }
         }
 
 
