@@ -3,7 +3,7 @@ Microsoft Visual Studio Solution File, Format Version 12.00
 # Visual Studio Version 17
 VisualStudioVersion = 17.8.34309.116
 MinimumVisualStudioVersion = 10.0.40219.1
-Project("{FAE04EC0-301F-11D3-BF4B-00C04F79EFBC}") = "QuestionnaireForm", "QuestionnaireForm\QuestionnaireForm.csproj", "{24056012-653C-429A-9F10-717D0802053C}"
+Project("{FAE04EC0-301F-11D3-BF4B-00C04F79EFBC}") = "PPE-BelleTable-C#", "QuestionnaireForm\PPE-BelleTable-C#.csproj", "{24056012-653C-429A-9F10-717D0802053C}"
 EndProject
 Global
 	GlobalSection(SolutionConfigurationPlatforms) = preSolution
