@@ -58,14 +58,7 @@ namespace QuestionnaireForm
 
         public Question getQuestion(int id)
         {
-            foreach (Question question in Questions)
-            {
-                if (question.GetId() == id)
-                {
-                    return question;
-                }
-            }
-            return null;
+            return Questions.FirstOrDefault(q => q.GetId() == id);
         }
 
         public List<Question> getQuestions()

@@ -17,26 +17,26 @@ namespace QuestionnaireForm
         private Questionnaire questionnaire { get; set; }
         private int creator_id { get; set; }
         private DBConnection db;
-        private int index { get; set; }
+        private int questionID { get; set; }
         private string TypeDeQuestion { get; set; }
         private Question questions { get; set; }
         private List<QuestionType> ListeType = new List<QuestionType>();
-        public proprietyQuestionForm(DBConnection db, int creator_id, Questionnaire questionnaire, int indexGiven = -1)
+        public proprietyQuestionForm(DBConnection db, int creator_id, Questionnaire questionnaire, int questionIDGiven = -1)
         {
             InitializeComponent();
             this.db = db;
             this.creator_id = creator_id;
             this.questionnaire = questionnaire;
-            index = indexGiven;
+            questionID = questionIDGiven;
             GetTypes(db);
             foreach (QuestionType type in ListeType)
             {
                 comboBox_type.Items.Add(type.name);
             }
             comboBox_type.SelectedIndex = 0;
-            if (index != -1)
+            if (questionID != -1)
             {
-                questions = questionnaire.getQuestionByQuestionnaireIndex(index);
+                questions = questionnaire.getQuestion(questionID);
                 txtbox_question_name.Text = questions.GetText();
                 TypeDeQuestion = questions.GetType(db);
                 comboBox_type.Text = TypeDeQuestion;
@@ -197,7 +197,7 @@ namespace QuestionnaireForm
                     questions.SetAnswers(checkedBoxText.ToArray());
                 }
 
-                if (index != -1)
+                if (questionID != -1)
                 {
                     questions.updateQuestion(db);
                 }

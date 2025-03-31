@@ -62,24 +62,26 @@ namespace QuestionnaireForm
             {
                 try
                 {
-                    // Récupérer la liste des questionnaires créés par l'utilisateur
+                    // Récupérer la liste des thèmes
                     MySqlCommand connectionRequest = new MySqlCommand(
-                        "SELECT id_theme as id, nom FROM theme",
+                        "SELECT id_theme, nom FROM theme",
                         db.Connection
                     );
 
                     using (MySqlDataReader reader = connectionRequest.ExecuteReader())
                     {
-
                         while (reader.Read())
                         {
-                            if (ListeThemes.Contains(new QuestionnaireTheme(reader["nom"].ToString(), reader.GetInt32(0))) == false)
+                            int themeId = reader.GetInt32("id_theme");
+                            string themeName = reader["nom"].ToString();
+
+                            // Vérifier si le thème n'existe pas déjà dans la liste
+                            if (!ListeThemes.Any(t => t.id == themeId))
                             {
-                                ListeThemes.Add(new QuestionnaireTheme(reader["nom"].ToString(), reader.GetInt32(0)));
+                                ListeThemes.Add(new QuestionnaireTheme(themeName, themeId));
                             }
                         }
                         reader.Close();
-
                     }
                 }
                 catch (Exception ex)
@@ -188,66 +190,104 @@ namespace QuestionnaireForm
         }
 
         private void RefreshQuestionsList(bool firstTime = false)
+{
+    if (index != -1)
+    {
+        db.Close();
+        if (db.IsConnect())
         {
-            if (index != -1)
+            try
             {
-                db.Close();
-                if (db.IsConnect())
-                {
-                    try
-                    {
-                        MySqlCommand connectionRequest = new MySqlCommand(
-                            "SELECT id_question, question, type, choix, reponses, id_creator FROM questions WHERE id_questionnaire = @id_questionnaire",
-                            db.Connection
-                        );
-                        connectionRequest.Parameters.AddWithValue("@id_questionnaire", questionnaire.getId());
-                        Console.WriteLine(questionnaire.getQuestions().Count);
-                        using (MySqlDataReader reader = connectionRequest.ExecuteReader())
-                        {
-                            while (reader.Read())
-                            {
-                                string[] answers = reader["reponses"].ToString().Split(',');
-                                string[] choices = reader["choix"].ToString().Split(',');
-                                int id_quest = reader.GetInt32("id_question");
-                                Console.WriteLine("ID : " + id_quest);
-                                if (firstTime)
-                                {
-                                    Question question = new Question(id_quest, questionnaire.getId(), created_by, reader["question"].ToString(), reader.GetInt32("type"), answers, choices);
+                MySqlCommand connectionRequest = new MySqlCommand(
+                    "SELECT q.id_question, q.question, q.type, " +
+                    "GROUP_CONCAT(CASE WHEN c.est_reponse = 1 THEN c.texte END) AS reponses_texte, " +
+                    "GROUP_CONCAT(c.texte) AS choix_texte, " + 
+                    "GROUP_CONCAT(CASE WHEN c.est_reponse = 1 THEN c.id END) AS reponses_id, " +
+                    "GROUP_CONCAT(c.id) AS choix_id, " +
+                    "q.id_creator " +
+                    "FROM questions q " +
+                    "LEFT JOIN choix c ON q.id_question = c.id_question " +
+                    "WHERE q.id_questionnaire = @id_questionnaire " +
+                    "GROUP BY q.id_question",
+                    db.Connection
+                );
+                connectionRequest.Parameters.AddWithValue("@id_questionnaire", questionnaire.getId());
+                Console.WriteLine(questionnaire.getQuestions().Count);
 
-                                    questionnaire.addQuestion(question);
-                                }
-                                else
-                                {
-                                    Question question = questionnaire.getQuestion(id_quest);
-                                    question.SetText(reader["question"].ToString());
-                                    question.SetType(reader.GetInt32("type"), db);
-                                    question.SetAnswers(answers);
-                                    question.SetChoices(choices);
-                                    question.setIdCreator(created_by);
-                                }
-                            }
-                            reader.Close();
-                        }
+                using (MySqlDataReader reader = connectionRequest.ExecuteReader())
+                {
+                    while (reader.Read())
+                    {
+                        string[] answersTexts = !string.IsNullOrEmpty(reader["reponses_texte"].ToString()) 
+                            ? reader["reponses_texte"].ToString().Split(',') 
+                            : new string[0];
+                        
+                        string[] choicesTexts = !string.IsNullOrEmpty(reader["choix_texte"].ToString()) 
+                            ? reader["choix_texte"].ToString().Split(',') 
+                            : new string[0];
+                        
+                        string[] answersIds = !string.IsNullOrEmpty(reader["reponses_id"].ToString()) 
+                            ? reader["reponses_id"].ToString().Split(',') 
+                            : new string[0];
+                        
+                        string[] choicesIds = !string.IsNullOrEmpty(reader["choix_id"].ToString()) 
+                            ? reader["choix_id"].ToString().Split(',') 
+                            : new string[0];
+                        
+                        int id_quest = reader.GetInt32("id_question");
+                        Console.WriteLine("ID : " + id_quest);
+
                         if (firstTime)
                         {
-                            for (int i = 0; i < questionnaire.getQuestions().Count; i++)
+                            Question question = new Question(
+                                id_quest,
+                                questionnaire.getId(),
+                                created_by,
+                                reader["question"].ToString(),
+                                reader.GetInt32("type"),
+                                answersTexts,
+                                choicesTexts
+                            );
+
+                            questionnaire.addQuestion(question);
+                        }
+                        else
+                        {
+                            Question question = questionnaire.getQuestion(id_quest);
+                            if (question != null)
                             {
-                                questionnaire.getQuestionByQuestionnaireIndex(i).GetType(db);
+                                question.SetText(reader["question"].ToString());
+                                question.SetType(reader.GetInt32("type"), db);
+                                question.SetAnswers(answersTexts);
+                                question.SetChoices(choicesTexts);
+                                question.setIdCreator(created_by);
                             }
                         }
                     }
-                    catch (Exception ex)
-                    {
-                        Console.WriteLine($"Erreur lors de la récupération des questions: {ex.Message}");
-                    }
-                    }
-                else
-                {
-                    Console.WriteLine("Erreur de connexion à la base de données.");
+                    reader.Close();
                 }
-                appendListeQuestionnaire(questionnaire.getQuestions());
+
+                if (firstTime)
+                {
+                    for (int i = 0; i < questionnaire.getQuestions().Count; i++)
+                    {
+                        questionnaire.getQuestionByQuestionnaireIndex(i).GetType(db);
+                    }
+                }
+            }
+            catch (Exception ex)
+            {
+                Console.WriteLine($"Erreur lors de la récupération des questions: {ex.Message}");
             }
         }
+        else
+        {
+            Console.WriteLine("Erreur de connexion à la base de données.");
+        }
+        appendListeQuestionnaire(questionnaire.getQuestions());
+    }
+}
+
 
         private void appendListeQuestionnaire(List<Question> listeDeQuestion)
         {
@@ -294,13 +334,14 @@ namespace QuestionnaireForm
             }
         }
 
-        private void modifierToolStripMenuItem_Click(object sender, EventArgs e)
-        {
+       private void modifierToolStripMenuItem_Click(object sender, EventArgs e)
+{
             if (dataGrid_listeQuestions.SelectedRows.Count > 0)
             {
                 int selectedIndex = dataGrid_listeQuestions.SelectedRows[0].Index;
+                int questionId = questionnaire.getQuestions()[selectedIndex].GetId();
                 db.Close();
-                proprietyQuestionForm proprietyQuestionForm = new proprietyQuestionForm(db, created_by, listeDeQuestionnaire[index], index);
+                proprietyQuestionForm proprietyQuestionForm = new proprietyQuestionForm(db, created_by, listeDeQuestionnaire[index], questionId);
                 // Ajout d'un écouteur pour rafraîchir la liste des questionnaires après la fermeture de la fenêtre de propriétés
                 proprietyQuestionForm.FormClosed += (s, args) => { RefreshQuestionsList(); };
                 proprietyQuestionForm.ShowDialog();

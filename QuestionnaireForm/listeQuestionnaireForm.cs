@@ -37,17 +37,16 @@ namespace QuestionnaireForm
                 try
                 {
                     MySqlCommand connectionRequest = new MySqlCommand(
-                        "SELECT q.id AS questionnaire_id, q.nom AS questionnaire_nom, t.nom AS theme_nom, " +
-                        "COUNT(qs.id_question) AS nombre_de_questions FROM questionnaire q " +
+                        "SELECT q.id, q.nom, t.nom AS theme_nom, " +
+                        "COUNT(DISTINCT qs.id_question) AS nombre_de_questions FROM questionnaire q " +
                         "LEFT JOIN theme t ON q.theme = t.id_theme " +
                         "LEFT JOIN questions qs ON q.id = qs.id_questionnaire " +
-                        "LEFT JOIN users u ON q.created_by = u.id " +
-                        "WHERE u.username = @username " +
-                        "GROUP BY q.id, q.nom, t.nom",
+                        "WHERE q.created_by = @user_id " +
+                        "GROUP BY q.id, q.nom, theme_nom",
                         db.Connection
                     );
 
-                    connectionRequest.Parameters.AddWithValue("@username", username);
+                    connectionRequest.Parameters.AddWithValue("@user_id", id_user);
 
                     using (MySqlDataReader reader = connectionRequest.ExecuteReader())
                     {
@@ -62,27 +61,35 @@ namespace QuestionnaireForm
 
                         while (reader.Read())
                         {
-                            Console.WriteLine($"id_questionnaire: {reader["questionnaire_id"]}");
-                            Console.WriteLine($"nom: {reader["questionnaire_nom"]}");
-                            Console.WriteLine($"theme: {reader["theme_nom"]}");
-                            Console.WriteLine($"nb_questions: {reader["nombre_de_questions"]}");
+                            int questionnaireId = Convert.ToInt32(reader["id"]);
+                            string questionnaireName = reader["nom"].ToString();
+                            string themeName = reader["theme_nom"].ToString();
+                            int questionCount = Convert.ToInt32(reader["nombre_de_questions"]);
+
+                            Console.WriteLine($"id_questionnaire: {questionnaireId}");
+                            Console.WriteLine($"nom: {questionnaireName}");
+                            Console.WriteLine($"theme: {themeName}");
+                            Console.WriteLine($"nb_questions: {questionCount}");
 
                             Questionnaire questionnaire = new Questionnaire(
-                                Convert.ToInt32(reader["questionnaire_id"]),
-                                reader["questionnaire_nom"].ToString(),
-                                reader["theme_nom"].ToString(),
+                                questionnaireId,
+                                questionnaireName,
+                                themeName,
                                 new List<Question>(),
-                                Convert.ToInt32(reader["nombre_de_questions"])
+                                questionCount
                             );
                             liste_questionnairesT.Add(questionnaire);
                         }
                         reader.Close();
                     }
-                    db.Close();
                 }
                 catch (Exception ex)
                 {
                     Console.WriteLine($"Erreur lors de la récupération des questionnaires: {ex.Message}");
+                }
+                finally
+                {
+                    db.Close();
                 }
             }
             else
