@@ -9,18 +9,38 @@ using static System.Windows.Forms.VisualStyles.VisualStyleElement.StartPanel;
 
 namespace QuestionnaireForm
 {
+    /// <summary>
+    /// Représente une question d'un questionnaire, avec gestion des choix, réponses, type et pondération.
+    /// La pondération des choix est transmise via la propriété publique Tag (int[]), utilisée lors de l'insertion ou la mise à jour.
+    /// </summary>
     public class Question
     {
+        // Identifiant du questionnaire auquel appartient la question
         private int id_questionnaire { get; set; }
+        // Identifiant unique de la question
         private int id { get; set; }
+        // Identifiant du créateur de la question
         private int idCreator { get; set; }
+        // Texte de la question
         private string Text { get; set; }
+        // Tableau des bonnes réponses
         private string[] Answers { get; set; }
-
+        // Type numérique de la question
         private int Type { get; set; }
+        // Type de la question sous forme de texte (nom du type)
         private string StringType { get; set; }
+        // Tableau de tous les choix proposés pour la question
         private string[] Choices { get; set; }
 
+        /// <summary>
+        /// Propriété publique utilisée pour stocker temporairement la pondération des choix (int[] points).
+        /// Chaque élément correspond au nombre de points attribués à un choix.
+        /// </summary>
+        public object Tag { get; set; }
+
+        /// <summary>
+        /// Constructeur par défaut. Initialise les champs à des valeurs neutres.
+        /// </summary>
         public Question()
         {
             Text = "";
@@ -29,6 +49,16 @@ namespace QuestionnaireForm
             Choices = new string[0];
         }
 
+        /// <summary>
+        /// Constructeur principal.
+        /// </summary>
+        /// <param name="id">Identifiant de la question</param>
+        /// <param name="id_questionnaire">Identifiant du questionnaire</param>
+        /// <param name="creatorId">Identifiant du créateur</param>
+        /// <param name="text">Texte de la question</param>
+        /// <param name="type">Type de la question (numérique)</param>
+        /// <param name="answers">Tableau des bonnes réponses</param>
+        /// <param name="choices">Tableau des choix proposés</param>
         public Question(int id, int id_questionnaire, int creatorId, string text, int type, string[] answers, string[] choices)
         {
             this.id = id;
@@ -40,32 +70,49 @@ namespace QuestionnaireForm
             Choices = choices;
         }
 
+        /// <summary>
+        /// Vérifie si une réponse donnée est correcte.
+        /// </summary>
         public bool CheckAnswer(string answer)
         {
             return Answers.Contains(answer);
         }
 
+        /// <summary>
+        /// Retourne le tableau des bonnes réponses.
+        /// </summary>
         public string[] GetAnswers()
         {
             return Answers;
         }
 
+        /// <summary>
+        /// Retourne le texte de la question.
+        /// </summary>
         public string GetText()
         {
             return Text;
         }
 
+        /// <summary>
+        /// Retourne l'identifiant du créateur.
+        /// </summary>
         public int GetIdCreator()
         {
             return idCreator;
         }
 
+        /// <summary>
+        /// Retourne l'identifiant de la question.
+        /// </summary>
         public int GetId()
         {
             return id;
         }
 
-
+        /// <summary>
+        /// Récupère le nom du type de la question depuis la base de données.
+        /// </summary>
         public string GetType(DBConnection db)
         {
             if (db.IsConnect())
@@ -93,49 +140,76 @@ namespace QuestionnaireForm
             }
         }
 
-
+        /// <summary>
+        /// Retourne le nom du type de la question (déjà chargé).
+        /// </summary>
         public string GetStringType()
         {
-
             return StringType;
         }
 
+        /// <summary>
+        /// Retourne le tableau des choix proposés.
+        /// </summary>
         public string[] GetChoices()
         {
             return Choices;
         }
 
+        /// <summary>
+        /// Définit les bonnes réponses.
+        /// </summary>
         public void SetAnswers(string[] answers)
         {
             Answers = answers;
         }
 
+        /// <summary>
+        /// Définit le texte de la question.
+        /// </summary>
         public void SetText(string text)
         {
             Text = text;
         }
 
+        /// <summary>
+        /// Définit le type de la question et met à jour le nom du type.
+        /// </summary>
         public void SetType(int type, DBConnection db)
         {
             Type = type;
             GetType(db);
         }
 
+        /// <summary>
+        /// Définit les choix proposés.
+        /// </summary>
         public void SetChoices(string[] choices)
         {
             Choices = choices;
         }
 
+        /// <summary>
+        /// Définit l'identifiant du questionnaire.
+        /// </summary>
         public void SetQuestionnaireId(int id_questionnaire)
         {
             this.id_questionnaire = id_questionnaire;
         }
 
+        /// <summary>
+        /// Définit l'identifiant du créateur.
+        /// </summary>
         public void setIdCreator(int idCreator)
         {
             this.idCreator = idCreator;
         }
 
+        /// <summary>
+        /// Met à jour la question et ses choix dans la base de données.
+        /// Si des réponses utilisateur existent, les choix sont mis à jour sans suppression.
+        /// La pondération de chaque choix est récupérée via Tag (int[]), sinon 1 pour bonne réponse, 0 sinon.
+        /// </summary>
         public bool updateQuestion(DBConnection db)
         {
             try
@@ -192,13 +266,16 @@ namespace QuestionnaireForm
 
                         // Mettre à jour les choix existants et ajouter les nouveaux
                         int i = 0;
+                        // Récupération de la pondération depuis Tag (int[])
+                        int[] points = Tag as int[];
                         foreach (var choiceId in existingChoices.Keys.ToList())
                         {
                             if (i < Choices.Length)
                             {
                                 // Mettre à jour le choix existant
                                 bool isAnswer = Answers.Contains(Choices[i]);
-                                int points = isAnswer ? 1 : 0;
+                                // Si la pondération n'est pas fournie, 1 pour bonne réponse, 0 sinon
+                                int point = (points != null && i < points.Length) ? points[i] : (isAnswer ? 1 : 0);
 
                                 using (var updateChoiceRequest = new MySqlCommand(
                                     "UPDATE choix SET texte = @texte, est_reponse = @est_reponse, points = @points " +
@@ -206,7 +283,7 @@ namespace QuestionnaireForm
                                 {
                                     updateChoiceRequest.Parameters.AddWithValue("@texte", Choices[i]);
                                     updateChoiceRequest.Parameters.AddWithValue("@est_reponse", isAnswer);
-                                    updateChoiceRequest.Parameters.AddWithValue("@points", points);
+                                    updateChoiceRequest.Parameters.AddWithValue("@points", point);
                                     updateChoiceRequest.Parameters.AddWithValue("@id", choiceId);
                                     updateChoiceRequest.ExecuteNonQuery();
                                 }
@@ -218,7 +295,7 @@ namespace QuestionnaireForm
                         for (; i < Choices.Length; i++)
                         {
                             bool isAnswer = Answers.Contains(Choices[i]);
-                            int points = isAnswer ? 1 : 0;
+                            int point = (points != null && i < points.Length) ? points[i] : (isAnswer ? 1 : 0);
 
                             using (var insertChoiceRequest = new MySqlCommand(
                                 "INSERT INTO choix (id_question, texte, est_reponse, points) " +
@@ -227,7 +304,7 @@ namespace QuestionnaireForm
                                 insertChoiceRequest.Parameters.AddWithValue("@id_question", id);
                                 insertChoiceRequest.Parameters.AddWithValue("@texte", Choices[i]);
                                 insertChoiceRequest.Parameters.AddWithValue("@est_reponse", isAnswer);
-                                insertChoiceRequest.Parameters.AddWithValue("@points", points);
+                                insertChoiceRequest.Parameters.AddWithValue("@points", point);
                                 insertChoiceRequest.ExecuteNonQuery();
                             }
                         }
@@ -245,10 +322,12 @@ namespace QuestionnaireForm
                         }
 
                         // 3.2 Insérer les nouveaux choix
+                        int[] points = Tag as int[];
+                        int i = 0;
                         foreach (string choice in Choices)
                         {
                             bool isAnswer = Answers.Contains(choice);
-                            int points = isAnswer ? 1 : 0;
+                            int point = (points != null && i < points.Length) ? points[i] : (isAnswer ? 1 : 0);
 
                             using (var insertChoiceRequest = new MySqlCommand(
                                 "INSERT INTO choix (id_question, texte, est_reponse, points) " +
@@ -257,9 +336,10 @@ namespace QuestionnaireForm
                                 insertChoiceRequest.Parameters.AddWithValue("@id_question", id);
                                 insertChoiceRequest.Parameters.AddWithValue("@texte", choice);
                                 insertChoiceRequest.Parameters.AddWithValue("@est_reponse", isAnswer);
-                                insertChoiceRequest.Parameters.AddWithValue("@points", points);
+                                insertChoiceRequest.Parameters.AddWithValue("@points", point);
                                 insertChoiceRequest.ExecuteNonQuery();
                             }
+                            i++;
                         }
                     }
 
@@ -280,8 +360,10 @@ namespace QuestionnaireForm
             }
         }
 
-
-
+        /// <summary>
+        /// Insère la question et ses choix dans la base de données.
+        /// La pondération de chaque choix est récupérée via Tag (int[]), sinon 1 pour bonne réponse, 0 sinon.
+        /// </summary>
         public bool insertQuestion(DBConnection db)
         {
             try
@@ -314,11 +396,14 @@ namespace QuestionnaireForm
                         this.id = questionId;
                     }
 
-                    // 2. Insérer les choix avec leurs valeurs de réponse
+                    // 2. Insérer les choix avec leurs valeurs de réponse et pondération
+                    int[] points = Tag as int[];
+                    int i = 0;
                     foreach (string choice in Choices)
                     {
                         bool isAnswer = Answers.Contains(choice);
-                        int points = isAnswer ? 1 : 0;
+                        // Si la pondération n'est pas fournie, 1 pour bonne réponse, 0 sinon
+                        int point = (points != null && i < points.Length) ? points[i] : (isAnswer ? 1 : 0);
 
                         using (var insertChoiceRequest = new MySqlCommand(
                             "INSERT INTO choix (id_question, texte, est_reponse, points) " +
@@ -327,9 +412,10 @@ namespace QuestionnaireForm
                             insertChoiceRequest.Parameters.AddWithValue("@id_question", questionId);
                             insertChoiceRequest.Parameters.AddWithValue("@texte", choice);
                             insertChoiceRequest.Parameters.AddWithValue("@est_reponse", isAnswer);
-                            insertChoiceRequest.Parameters.AddWithValue("@points", points);
+                            insertChoiceRequest.Parameters.AddWithValue("@points", point);
                             insertChoiceRequest.ExecuteNonQuery();
                         }
+                        i++;
                     }
 
                     MessageBox.Show("Question ajoutée avec succès");
@@ -349,9 +435,9 @@ namespace QuestionnaireForm
             }
         }
 
-
-
-
+        /// <summary>
+        /// Supprime la question de la base de données.
+        /// </summary>
         public bool deleteSelf(DBConnection db)
         {
             try

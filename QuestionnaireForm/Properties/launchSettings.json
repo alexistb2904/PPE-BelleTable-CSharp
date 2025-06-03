@@ -2,12 +2,6 @@
   "profiles": {
     "QuestionnaireForm": {
       "commandName": "Project",
-        "environmentVariables": {
-            "DB_HOST": "localhost",
-            "DB_PASSWORD": "56qLNE5ZmO8=",
-            "DB_USER": "alexistb2904",
-            "DB_NAME": "quizdb"
-        }
     }
   }
 }
