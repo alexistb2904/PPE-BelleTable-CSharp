@@ -229,72 +229,58 @@ namespace QuestionnaireForm
                 {
                     try
                     {
+                        questionnaire.getQuestions().Clear();
+
                         MySqlCommand connectionRequest = new MySqlCommand(
                             "SELECT q.id_question, q.question, q.type, " +
-                            "GROUP_CONCAT(CASE WHEN c.est_reponse = 1 THEN c.texte END) AS reponses_texte, " +
-                            "GROUP_CONCAT(c.texte) AS choix_texte, " +
-                            "GROUP_CONCAT(CASE WHEN c.est_reponse = 1 THEN c.id END) AS reponses_id, " +
-                            "GROUP_CONCAT(c.id) AS choix_id, " +
+                            "GROUP_CONCAT(CASE WHEN c.est_reponse = 1 THEN c.texte END SEPARATOR '~|~') AS reponses_texte, " +
+                            "GROUP_CONCAT(c.texte SEPARATOR '~|~') AS choix_texte, " +
+                            "GROUP_CONCAT(CASE WHEN c.est_reponse = 1 THEN c.id END SEPARATOR '~|~') AS reponses_id, " +
+                            "GROUP_CONCAT(c.id SEPARATOR '~|~') AS choix_id, " +
                             "q.id_creator " +
                             "FROM questions q " +
                             "LEFT JOIN choix c ON q.id_question = c.id_question " +
                             "WHERE q.id_questionnaire = @id_questionnaire " +
-                            "GROUP BY q.id_question",
+                            "GROUP BY q.id_question " +
+                            "ORDER BY q.id_question",
                             db.Connection
                         );
                         connectionRequest.Parameters.AddWithValue("@id_questionnaire", questionnaire.getId());
-                        Console.WriteLine(questionnaire.getQuestions().Count);
 
                         using (MySqlDataReader reader = connectionRequest.ExecuteReader())
                         {
                             while (reader.Read())
                             {
-                                string[] answersTexts = !string.IsNullOrEmpty(reader["reponses_texte"].ToString())
-                                    ? reader["reponses_texte"].ToString().Split(',')
+                                const string separator = "~|~";
+
+                                string reponsesTexteRaw = reader["reponses_texte"].ToString();
+                                string[] answersTexts = !string.IsNullOrEmpty(reponsesTexteRaw)
+                                    ? reponsesTexteRaw.Split(new[] { separator }, StringSplitOptions.None)
                                     : Array.Empty<string>();
 
-                                string[] choicesTexts = !string.IsNullOrEmpty(reader["choix_texte"].ToString())
-                                    ? reader["choix_texte"].ToString().Split(',')
+                                string choixTexteRaw = reader["choix_texte"].ToString();
+                                string[] choicesTexts = !string.IsNullOrEmpty(choixTexteRaw)
+                                    ? choixTexteRaw.Split(new[] { separator }, StringSplitOptions.None)
                                     : Array.Empty<string>();
 
                                 int id_quest = reader.GetInt32("id_question");
-                                Console.WriteLine("ID : " + id_quest);
 
-                                if (firstTime)
-                                {
-                                    Question question = new Question(
-                                        id_quest,
-                                        questionnaire.getId(),
-                                        created_by,
-                                        reader["question"].ToString(),
-                                        reader.GetInt32("type"),
-                                        answersTexts,
-                                        choicesTexts
-                                    );
-                                    questionnaire.addQuestion(question);
-                                }
-                                else
-                                {
-                                    Question question = questionnaire.getQuestion(id_quest);
-                                    if (question != null)
-                                    {
-                                        question.SetText(reader["question"].ToString());
-                                        question.SetType(reader.GetInt32("type"), db);
-                                        question.SetAnswers(answersTexts);
-                                        question.SetChoices(choicesTexts);
-                                        question.setIdCreator(created_by);
-                                    }
-                                }
+                                Question question = new Question(
+                                    id_quest,
+                                    questionnaire.getId(),
+                                    reader.GetInt32("id_creator"),
+                                    reader["question"].ToString(),
+                                    reader.GetInt32("type"),
+                                    answersTexts,
+                                    choicesTexts
+                                );
+                                questionnaire.addQuestion(question);
                             }
-                            reader.Close();
                         }
 
-                        if (firstTime)
+                        foreach (Question q_item in questionnaire.getQuestions())
                         {
-                            for (int i = 0; i < questionnaire.getQuestions().Count; i++)
-                            {
-                                questionnaire.getQuestionByQuestionnaireIndex(i).GetType(db);
-                            }
+                            q_item.GetType(db);
                         }
                     }
                     catch (Exception ex)
@@ -387,10 +373,10 @@ namespace QuestionnaireForm
             if (dataGrid_listeQuestions.SelectedRows.Count > 0)
             {
                 int selectedIndex = dataGrid_listeQuestions.SelectedRows[0].Index;
-                Question selectedQuestion = listeDeQuestionnaire[index].getQuestion(selectedIndex);
+                Question selectedQuestion = questionnaire.getQuestions()[selectedIndex];
 
                 DialogResult result = MessageBox.Show(
-                    "Êtes-vous sûr de vouloir supprimer ce questionnaire?",
+                    "Êtes-vous sûr de vouloir supprimer cette question?",
                     "Confirmation",
                     MessageBoxButtons.YesNo,
                     MessageBoxIcon.Warning
@@ -399,7 +385,6 @@ namespace QuestionnaireForm
                 if (result == DialogResult.Yes)
                 {
                     selectedQuestion.deleteSelf(db);
-                    Questionnaire questionnaire = listeDeQuestionnaire[index];
                     questionnaire.removeQuestion(selectedQuestion);
                     RefreshQuestionsList();
                 }

@@ -31,14 +31,28 @@ namespace QuestionnaireForm
             {
                 if (Connection == null || Connection.State != System.Data.ConnectionState.Open)
                 {
-
                     if (String.IsNullOrEmpty(DatabaseName))
                         return false;
-                    string connstring = string.Format("Server={0}; database={1}; UID={2}; password={3}", Server, DatabaseName, UserName, Password);
+                    string server = Server;
+                    string port = null;
+                    if (Server != null && Server.Contains(":"))
+                    {
+                        var parts = Server.Split(':');
+                        server = parts[0];
+                        port = parts.Length > 1 ? parts[1] : null;
+                    }
+                    string connstring;
+                    if (!string.IsNullOrEmpty(port))
+                    {
+                        connstring = string.Format("Server={0};Port={1};database={2};UID={3};password={4}", server, port, DatabaseName, UserName, Password);
+                    }
+                    else
+                    {
+                        connstring = string.Format("Server={0};database={1};UID={2};password={3}", server, DatabaseName, UserName, Password);
+                    }
                     Connection = new MySqlConnection(connstring);
                     Connection.Open();
                 }
-
                 return true;
             }
             catch (Exception e)
@@ -47,7 +61,6 @@ namespace QuestionnaireForm
                 return false;
             }
         }
-
 
         public void Close()
         {

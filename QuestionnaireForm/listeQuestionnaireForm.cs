@@ -104,12 +104,16 @@ namespace QuestionnaireForm
                 .OrderBy(q => q.getTitle())
                 .Select(q => new
                 {
+                    Id = q.getId(), // Ajout de l'id pour lier la ligne au questionnaire
                     Titre = q.getTitle(),
                     Theme = q.getTheme(),
                     Questions = q.nombreDeQuestions()
                 })
                 .ToList();
             dataGrid_listeQuestionnaire.DataSource = dataSource;
+            // Masquer la colonne Id
+            if (dataGrid_listeQuestionnaire.Columns["Id"] != null)
+                dataGrid_listeQuestionnaire.Columns["Id"].Visible = false;
         }
 
         /// <summary>
@@ -150,11 +154,17 @@ namespace QuestionnaireForm
         {
             if (dataGrid_listeQuestionnaire.SelectedRows.Count > 0)
             {
-                int selectedIndex = dataGrid_listeQuestionnaire.SelectedRows[0].Index;
-                db.Close();
-                proprietyQuestionnaire proprietyForm = new proprietyQuestionnaire(db, liste_questionnaires, id_user, selectedIndex);
-                proprietyForm.FormClosed += (s, args) => { RefreshQuestionnaireList(); };
-                proprietyForm.ShowDialog();
+                // Récupérer l'id du questionnaire sélectionné
+                int selectedId = (int)dataGrid_listeQuestionnaire.SelectedRows[0].Cells["Id"].Value;
+                // Retrouver l'index dans la liste
+                int selectedIndex = liste_questionnaires.FindIndex(q => q.getId() == selectedId);
+                if (selectedIndex >= 0)
+                {
+                    db.Close();
+                    proprietyQuestionnaire proprietyForm = new proprietyQuestionnaire(db, liste_questionnaires, id_user, selectedIndex);
+                    proprietyForm.FormClosed += (s, args) => { RefreshQuestionnaireList(); };
+                    proprietyForm.ShowDialog();
+                }
             }
         }
 
@@ -165,18 +175,22 @@ namespace QuestionnaireForm
         {
             if (dataGrid_listeQuestionnaire.SelectedRows.Count > 0)
             {
-                int selectedIndex = dataGrid_listeQuestionnaire.SelectedRows[0].Index;
-                Questionnaire selectedQuestionnaire = liste_questionnaires[selectedIndex];
-                DialogResult result = MessageBox.Show(
-                    "Êtes-vous sûr de vouloir supprimer ce questionnaire?",
-                    "Confirmation",
-                    MessageBoxButtons.YesNo,
-                    MessageBoxIcon.Warning
-                );
-                if (result == DialogResult.Yes)
+                int selectedId = (int)dataGrid_listeQuestionnaire.SelectedRows[0].Cells["Id"].Value;
+                int selectedIndex = liste_questionnaires.FindIndex(q => q.getId() == selectedId);
+                if (selectedIndex >= 0)
                 {
-                    DeleteQuestionnaire(selectedQuestionnaire);
-                    RefreshQuestionnaireList();
+                    Questionnaire selectedQuestionnaire = liste_questionnaires[selectedIndex];
+                    DialogResult result = MessageBox.Show(
+                        "Êtes-vous sûr de vouloir supprimer ce questionnaire?",
+                        "Confirmation",
+                        MessageBoxButtons.YesNo,
+                        MessageBoxIcon.Warning
+                    );
+                    if (result == DialogResult.Yes)
+                    {
+                        DeleteQuestionnaire(selectedQuestionnaire);
+                        RefreshQuestionnaireList();
+                    }
                 }
             }
         }

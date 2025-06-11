@@ -42,13 +42,26 @@ namespace QuestionnaireForm
             DotNetEnv.Env.Load(envPath);
             try
             {
-                return new DBConnection
+                if (Environment.GetEnvironmentVariable("USE_ALT_DB") == "False")
                 {
-                    Server = Environment.GetEnvironmentVariable("DB_HOST") ?? throw new InvalidOperationException("DB_HOST n'existe pas"),
-                    DatabaseName = Environment.GetEnvironmentVariable("DB_NAME") ?? throw new InvalidOperationException("DB_NAME n'existe pas"),
-                    UserName = Environment.GetEnvironmentVariable("DB_USER") ?? throw new InvalidOperationException("DB_USER n'existe pas"),
-                    Password = Crypto.Decrypt(Environment.GetEnvironmentVariable("DB_PASSWORD") ?? throw new InvalidOperationException("DB_PASSWORD n'existe pas"))
-                };
+                    return new DBConnection
+                    {
+
+                        Server = Environment.GetEnvironmentVariable("DB_HOST") ?? throw new InvalidOperationException("DB_HOST n'existe pas"),
+                        DatabaseName = Environment.GetEnvironmentVariable("DB_NAME") ?? throw new InvalidOperationException("DB_NAME n'existe pas"),
+                        UserName = Environment.GetEnvironmentVariable("DB_USER") ?? throw new InvalidOperationException("DB_USER n'existe pas"),
+                        Password = Crypto.Decrypt(Environment.GetEnvironmentVariable("DB_PASSWORD") ?? throw new InvalidOperationException("DB_PASSWORD n'existe pas"))
+                    };
+                } else
+                {
+                    return new DBConnection
+                    {
+                        Server = Environment.GetEnvironmentVariable("ALT_DB_HOST") ?? throw new InvalidOperationException("ALT_DB_HOST n'existe pas"),
+                        DatabaseName = Environment.GetEnvironmentVariable("ALT_DB_NAME") ?? throw new InvalidOperationException("ALT_DB_NAME n'existe pas"),
+                        UserName = Environment.GetEnvironmentVariable("ALT_DB_USER") ?? throw new InvalidOperationException("ALT_DB_USER n'existe pas"),
+                        Password = Crypto.Decrypt(Environment.GetEnvironmentVariable("ALT_DB_PASSWORD") ?? throw new InvalidOperationException("ALT_DB_PASSWORD n'existe pas"))
+                    };
+                }
             }
             catch (Exception ex)
             {
